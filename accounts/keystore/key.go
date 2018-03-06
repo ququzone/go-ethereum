@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -135,6 +136,21 @@ func newKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) *Key {
 		PrivateKey: privateKeyECDSA,
 	}
 	return key
+}
+
+// NewKey generates a key.
+func NewKey(rand io.Reader) (*Key, error) {
+	randBytes := make([]byte, 64)
+	_, err := rand.Read(randBytes)
+	if err != nil {
+		return nil, errors.New("key generation: could not read from random source: " + err.Error())
+	}
+	reader := bytes.NewReader(randBytes)
+	privateKeyECDSA, err := ecdsa.GenerateKey(crypto.S256(), reader)
+	if err != nil {
+		return nil, errors.New("key generation: ecdsa.GenerateKey failed: " + err.Error())
+	}
+	return newKeyFromECDSA(privateKeyECDSA), nil
 }
 
 // NewKeyForDirectICAP generates a key whose address fits into < 155 bits so it can fit
